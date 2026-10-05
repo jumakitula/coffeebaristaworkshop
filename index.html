@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>☕ Build an AI Coffee Barista Agent with Gemini & Streamlit</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Roboto & Roboto Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            google: {
+              blue: '#1a73e8',
+              blueHover: '#1557b0',
+              blueLight: '#e8f0fe',
+              red: '#ea4335',
+              redLight: '#fce8e6',
+              yellow: '#f9ab00',
+              yellowLight: '#fef7e0',
+              green: '#34a853',
+              greenLight: '#e6f4ea',
+              dark: '#202124',
+              gray: '#5f6368',
+              border: '#dadce0',
+              surface: '#f8f9fa'
+            }
+          },
+          fontFamily: {
+            sans: ['Roboto', 'Arial', 'sans-serif'],
+            mono: ['Roboto Mono', 'monospace'],
+          },
+          boxShadow: {
+            card: '0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15)',
+            hover: '0 1px 3px 0 rgba(60,64,67,0.3), 0 4px 8px 3px rgba(60,64,67,0.15)'
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    body {
+      background-color: #f8f9fa;
+      color: #202124;
+      font-family: 'Roboto', sans-serif;
+    }
+    .code-row:hover {
+      background-color: #f1f3f4;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex flex-col antialiased">
+
+  <!-- Signature Google 4-Color Strip -->
+  <div class="h-1.5 w-full flex">
+    <div class="w-1/4 bg-[#4285F4]"></div>
+    <div class="w-1/4 bg-[#EA4335]"></div>
+    <div class="w-1/4 bg-[#FBBC05]"></div>
+    <div class="w-1/4 bg-[#34A853]"></div>
+  </div>
+
+  <!-- Top App Bar -->
+  <header class="sticky top-0 z-50 bg-white border-b border-google-border shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-google-blueLight flex items-center justify-center text-xl shadow-inner border border-blue-200">
+          ☕
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg font-bold text-google-dark tracking-tight">AI Barista Workshop Guide</h1>
+            <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-google-blueLight text-google-blue border border-blue-200">
+              Gemini 3.5 Flash
+            </span>
+          </div>
+          <p class="text-xs text-google-gray">Interactive Attendee Code & Function Reference Companion</p>
+        </div>
+      </div>
+
+      <!-- Search bar & Collapse Control -->
+      <div class="flex items-center gap-3 flex-1 max-w-md justify-end">
+        <div class="relative w-full max-w-xs">
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="Search commands, code, functions..." 
+            class="w-full pl-9 pr-3 py-1.5 text-xs rounded-full bg-google-surface border border-google-border text-google-dark focus:outline-none focus:border-google-blue focus:bg-white focus:ring-2 focus:ring-blue-100 transition placeholder-google-gray"
+            onkeyup="filterSections()"
+          />
+          <svg class="w-4 h-4 absolute left-3 top-2 text-google-gray" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 1114 0z"></path>
+          </svg>
+        </div>
+        <button onclick="toggleDetails()" class="text-xs px-3 py-1.5 rounded-full font-medium border border-google-border bg-white text-google-gray hover:bg-google-surface hover:text-google-dark transition shadow-sm whitespace-nowrap">
+          Toggle Details
+        </button>
+      </div>
+    </div>
+
+    <!-- Sub-navigation tabs with Google theme accents -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-2 overflow-x-auto py-2.5 border-t border-gray-100 text-xs font-medium no-scrollbar">
+      <a href="#step-setup" class="px-3 py-1.5 rounded-full bg-google-blueLight text-google-blue hover:bg-blue-100 transition whitespace-nowrap">1. Setup Commands</a>
+      <a href="#step-env" class="px-3 py-1.5 rounded-full bg-google-surface text-google-gray hover:text-google-dark hover:bg-gray-200 transition whitespace-nowrap">2. .env Key</a>
+      <a href="#step-package" class="px-3 py-1.5 rounded-full bg-google-surface text-google-gray hover:text-google-dark hover:bg-gray-200 transition whitespace-nowrap">3. Package & __init__.py</a>
+      <a href="#step-menu" class="px-3 py-1.5 rounded-full bg-google-surface text-google-gray hover:text-google-dark hover:bg-gray-200 transition whitespace-nowrap">4. menu.json Data</a>
+      <a href="#step-agent" class="px-3 py-1.5 rounded-full bg-google-surface text-google-gray hover:text-google-dark hover:bg-gray-200 transition whitespace-nowrap">5. agent.py (Gemini Logic)</a>
+      <a href="#step-app" class="px-3 py-1.5 rounded-full bg-google-surface text-google-gray hover:text-google-dark hover:bg-gray-200 transition whitespace-nowrap">6. app.py (Streamlit UI)</a>
+      <a href="#step-run" class="px-3 py-1.5 rounded-full bg-google-greenLight text-google-green hover:bg-green-100 transition whitespace-nowrap">7. Launch Server</a>
+    </div>
+  </header>
+
+  <main class="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- Workshop Header Banner -->
+    <div class="p-6 rounded-2xl bg-white border border-google-border shadow-card relative overflow-hidden">
+      <div class="max-w-4xl space-y-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-google-blueLight text-google-blue">
+            Google Cloud Shell Lab
+          </span>
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-google-greenLight text-google-green">
+            Gemini Function Calling
+          </span>
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-google-yellowLight text-[#b07800]">
+            Hands-on Session
+          </span>
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-bold text-google-dark tracking-tight">
+          Build an AI Coffee Barista Agent with Gemini & Streamlit
+        </h2>
+        <p class="text-sm text-google-gray leading-relaxed">
+          Welcome to the workshop! Follow each numbered card below. You can copy entire files with the top button or copy individual lines with the line-level copy icons. All functions, tools, and imports have detailed inline explanations.
+        </p>
+      </div>
+
+      <!-- 4 Quick Stats Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 pt-5 border-t border-google-border text-xs">
+        <div class="p-3 rounded-xl bg-google-surface border-l-4 border-google-blue">
+          <span class="text-google-gray block">Model</span>
+          <span class="font-bold text-google-dark text-sm">gemini-3.5-flash</span>
+        </div>
+        <div class="p-3 rounded-xl bg-google-surface border-l-4 border-google-red">
+          <span class="text-google-gray block">SDK Engine</span>
+          <span class="font-bold text-google-dark text-sm">google-genai</span>
+        </div>
+        <div class="p-3 rounded-xl bg-google-surface border-l-4 border-google-yellow">
+          <span class="text-google-gray block">Frontend</span>
+          <span class="font-bold text-google-dark text-sm">Streamlit 8000</span>
+        </div>
+        <div class="p-3 rounded-xl bg-google-surface border-l-4 border-google-green">
+          <span class="text-google-gray block">Tool Mechanism</span>
+          <span class="font-bold text-google-dark text-sm">JSON Function Call</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 1: CLOUD SHELL COMMANDS -->
+    <section id="step-setup" class="searchable-section bg-white rounded-2xl border border-google-border shadow-card overflow-hidden">
+      <div class="p-4 sm:p-5 border-b border-google-border flex flex-wrap items-center justify-between gap-3 bg-white">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-google-blue text-white font-bold text-sm flex items-center justify-center shadow-sm">
+            1
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-google-dark">Google Cloud Shell & Dependencies Setup</h3>
+            <p class="text-xs text-google-gray">Authenticate your GCP session and install required Python packages.</p>
+          </div>
+        </div>
+        <button 
+          onclick="copyText('gcloud auth list\ngcloud config get project\ngcloud config set project <project id>\npip install google-genai streamlit python-dotenv', this)" 
+          class="text-xs font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-google-blue hover:bg-google-blueHover text-white transition shadow-sm">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+          Copy All Setup Commands
+        </button>
+      </div>
+
+      <div class="p-4 sm:p-5 space-y-4">
+        <div class="overflow-x-auto border border-google-border rounded-xl">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead class="bg-google-surface text-google-gray border-b border-google-border">
+              <tr>
+                <th class="py-2.5 px-4 font-semibold w-12">#</th>
+                <th class="py-2.5 px-4 font-semibold">Command to Run in Cloud Shell</th>
+                <th class="py-2.5 px-4 font-semibold hidden md:table-cell">Function & Detailed Purpose</th>
+                <th class="py-2.5 px-4 text-right w-24">Copy</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-google-border font-mono">
+              <tr class="code-row transition">
+                <td class="py-3 px-4 text-google-gray">01</td>
+                <td class="py-3 px-4 text-google-blue font-semibold select-all">gcloud auth list</td>
+                <td class="py-3 px-4 font-sans text-google-gray hidden md:table-cell">Lists active GCP accounts. Confirms that your user profile is authorized to access Google Cloud.</td>
+                <td class="py-3 px-4 text-right">
+                  <button onclick="copyText('gcloud auth list', this)" class="px-2.5 py-1 text-[11px] rounded-md font-sans bg-google-surface hover:bg-google-blue hover:text-white text-google-dark border border-google-border transition">Copy</button>
+                </td>
+              </tr>
+              <tr class="code-row transition">
+                <td class="py-3 px-4 text-google-gray">02</td>
+                <td class="py-3 px-4 text-google-blue font-semibold select-all">gcloud config get project</td>
+                <td class="py-3 px-4 font-sans text-google-gray hidden md:table-cell">Fetches current Google Cloud project ID. Verifies your shell context points to the correct workshop sandbox.</td>
+                <td class="py-3 px-4 text-right">
+                  <button onclick="copyText('gcloud config get project', this)" class="px-2.5 py-1 text-[11px] rounded-md font-sans bg-google-surface hover:bg-google-blue hover:text-white text-google-dark border border-google-border transition">Copy</button>
+                </td>
+              </tr>
+              <tr class="code-row transition">
+                <td class="py-3 px-4 text-google-gray">03</td>
+                <td class="py-3 px-4 text-google-blue font-semibold select-all">gcloud config set project &lt;project id&gt;</td>
+                <td class="py-3 px-4 font-sans text-google-gray hidden md:table-cell">Sets the project if unconfigured. Replace <code>&lt;project id&gt;</code> with your designated lab project ID.</td>
+                <td class="py-3 px-4 text-right">
+                  <button onclick="copyText('gcloud config set project <project id>', this)" class="px-2.5 py-1 text-[11px] rounded-md font-sans bg-google-surface hover:bg-google-blue hover:text-white text-google-dark border border-google-border transition">Copy</button>
+                </td>
+              </tr>
+              <tr class="code-row transition">
+                <td class="py-3 px-4 text-google-gray">04</td>
+                <td class="py-3 px-4 text-google-green font-semibold select-all">pip install google-genai streamlit python-dotenv</td>
+                <td class="py-3 px-4 font-sans text-google-gray hidden md:table-cell">Installs the modern Google GenAI SDK (<code class="text-google-green">google-genai</code>), the web app engine (<code class="text-google-green">streamlit</code>), and the environment reader (<code class="text-google-green">python-dotenv</code>).</td>
+                <td class="py-3 px-4 text-right">
+                  <button onclick="copyText('pip install google-genai streamlit python-dotenv', this)" class="px-2.5 py-1 text-[11px] rounded-md font-sans bg-google-surface hover:bg-google-green hover:text-white text-google-dark border border-google-border transition">Copy</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 2: .ENV CONFIGURATION -->
+    <section id="step-env" class="searchable-section bg-white rounded-2xl border border-google-border shadow-card overflow-hidden">
+      <div class="p-4 sm:p-5 border-b border-google-border flex flex-wrap items-center justify-between gap-3 bg-white">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-google-red text-white font-bold text-sm flex items-center justify-center shadow-sm">
+            2
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-google-dark">API Key & Environment Variables (<span class="font-mono text-google-red">.env</span>)</h3>
+            <p class="text-xs text-google-gray">Run <code class="font-mono text-google-dark bg-google-surface px-1.5 py-0.5 rounded border border-google-border">cloudshell edit .env</code> in root folder</p>
+          </div>
+        </div>
+        <button 
+          onclick="copyText('GOOGLE_GENAI_USE_VERTEXAI=False\nGEMINI_API_KEY=\x22YOUR_ACTUAL_AI_STUDIO_API_KEY_HERE\x22', this)" 
+          class="text-xs font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-google-red hover:bg-red-700 text-white transition shadow-sm">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+          Copy .env File
+        </button>
+      </div>
+
+      <div class="p-4 sm:p-5 space-y-4">
+        <div class="border border-google-border rounded-xl divide-y divide-google-border bg-white overflow-hidden">
+          <!-- Line 1 of .env -->
+          <div class="p-3.5 code-row flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+            <div class="font-mono flex items-center gap-3">
+              <span class="text-google-gray select-none w-6">01</span>
+              <span class="font-semibold text-google-red">GOOGLE_GENAI_USE_VERTEXAI=False</span>
+            </div>
+            <div class="font-sans text-google-gray flex items-center justify-between gap-4 md:max-w-xl">
+              <span>Instructs the SDK to route queries straight through the Google AI Studio developer API endpoints instead of Google Cloud Vertex AI infrastructure.</span>
+              <button onclick="copyText('GOOGLE_GENAI_USE_VERTEXAI=False', this)" class="px-2 py-0.5 text-[11px] rounded bg-google-surface hover:bg-google-red hover:text-white border border-google-border transition whitespace-nowrap">Copy Line</button>
+            </div>
+          </div>
+          <!-- Line 2 of .env -->
+          <div class="p-3.5 code-row flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+            <div class="font-mono flex items-center gap-3">
+              <span class="text-google-gray select-none w-6">02</span>
+              <span class="font-semibold text-google-red">GEMINI_API_KEY="YOUR_ACTUAL_AI_STUDIO_API_KEY_HERE"</span>
+            </div>
+            <div class="font-sans text-google-gray flex items-center justify-between gap-4 md:max-w-xl">
+              <span>Your secret API key retrieved from Google AI Studio (<a href="https://aistudio.google.com/apikey" target="_blank" class="text-google-blue underline">aistudio.google.com</a>). Loaded automatically via <code class="font-mono">dotenv</code>.</span>
+              <button onclick="copyText('GEMINI_API_KEY=\x22YOUR_ACTUAL_AI_STUDIO_API_KEY_HERE\x22', this)" class="px-2 py-0.5 text-[11px] rounded bg-google-surface hover:bg-google-red hover:text-white border border-google-border transition whitespace-nowrap">Copy Line</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-google-yellowLight border border-amber-300 text-xs text-[#8a5d00] flex items-start gap-2.5">
+          <span class="text-base">💡</span>
+          <div>
+            <strong>Important Variable Check:</strong> Ensure that the key name in your <code class="font-mono font-bold">.env</code> matches what <code class="font-mono font-bold">agent.py</code> reads (<code class="font-mono">GEMINI_API_KEY</code> or <code class="font-mono">GOOGLE_API_KEY</code>). Both lines are fully aligned in this guide.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 3: PACKAGE DIRECTORY & __INIT__.PY -->
+    <section id="step-package" class="searchable-section bg-white rounded-2xl border border-google-border shadow-card overflow-hidden">
+      <div class="p-4 sm:p-5 border-b border-google-border flex flex-wrap items-center justify-between gap-3 bg-white">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-google-yellow text-white font-bold text-sm flex items-center justify-center shadow-sm">
+            3
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-google-dark">Package Structure & The Role of <span class="font-mono text-amber-700">__init__.py</span></h3>
+            <p class="text-xs text-google-gray">Understanding Python module namespaces and folder discovery</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="copyText('mkdir coffeebaristaagent && cd coffeebaristaagent', this)" class="text-xs px-3 py-1.5 rounded-full bg-google-surface hover:bg-gray-200 text-google-dark border border-google-border transition">
+            Copy mkdir command
+          </button>
+          <button onclick="copyText('touch coffeebaristaagent/__init__.py', this)" class="text-xs px-3 py-1.5 rounded-full bg-[#f9ab00] hover:bg-[#e09a00] text-white transition shadow-sm font-medium">
+            Copy touch __init__.py
+          </button>
+        </div>
+      </div>
+
+      <div class="p-4 sm:p-5 space-y-4">
+        <!-- Explanatory cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          <div class="p-4 rounded-xl bg-google-redLight border border-red-200 space-y-2">
+            <div class="flex items-center gap-2 font-bold text-google-red">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              Without <code class="font-mono">__init__.py</code> (Error)
+            </div>
+            <p class="text-google-gray leading-relaxed font-sans">
+              Python views <code class="font-mono font-semibold text-google-dark">coffeebaristaagent</code> as an ordinary folder on disk. When <code class="font-mono text-google-dark">app.py</code> executes:
+            </p>
+            <div class="p-2 rounded bg-white border border-red-200 font-mono text-google-red text-[11px]">
+              ModuleNotFoundError: No module named 'coffeebaristaagent'
+            </div>
+          </div>
+
+          <div class="p-4 rounded-xl bg-google-greenLight border border-green-200 space-y-2">
+            <div class="flex items-center gap-2 font-bold text-google-green">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+              With <code class="font-mono">__init__.py</code> (Working)
+            </div>
+            <p class="text-google-gray leading-relaxed font-sans">
+              Python officially registers the directory as an importable module namespace. It allows <code class="font-mono text-google-dark">app.py</code> to cleanly import functions from <code class="font-mono text-google-dark">coffeebaristaagent.agent</code>.
+            </p>
+            <div class="p-2 rounded bg-white border border-green-200 font-mono text-google-green text-[11px]">
+              from coffeebaristaagent.agent import run_barista_agent ✅
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 4: MENU DATABASE (JSON) -->
+    <section id="step-menu" class="searchable-section bg-white rounded-2xl border border-google-border shadow-card overflow-hidden">
+      <div class="p-4 sm:p-5 border-b border-google-border flex flex-wrap items-center justify-between gap-3 bg-white">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-google-green text-white font-bold text-sm flex items-center justify-center shadow-sm">
+            4
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-google-dark">Coffee & Food Catalog (<span class="font-mono text-google-green">coffeebaristaagent/menu.json</span>)</h3>
+            <p class="text-xs text-google-gray">Ground truth database queried by Gemini using function calling</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button 
+            onclick="copyMenuJson(this)" 
+            class="text-xs font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-google-green hover:bg-green-700 text-white transition shadow-sm">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+            Copy Complete menu.json
+          </button>
+        </div>
+      </div>
+
+      <div class="p-4 sm:p-5 space-y-4">
+        <!-- Validation Terminal Snippet -->
+        <div class="p-3 bg-google-surface rounded-xl border border-google-border flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded-full bg-google-greenLight text-google-green font-semibold">Validation CLI</span>
+            <code class="font-mono text-google-dark">cat menu.json | python3 -m json.tool &gt; /dev/null &amp;&amp; echo "Valid JSON!"</code>
+          </div>
+          <button onclick="copyText('cat menu.json | python3 -m json.tool > /dev/null && echo \x22Valid JSON!\x22', this)" class="px-2.5 py-1 text-[11px] rounded bg-white hover:bg-google-green hover:text-white border border-google-border transition">
+            Copy Validation Command
+          </button>
+        </div>
+
+        <!-- Schema Fields Breakdown -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+          <div class="p-3 rounded-xl bg-white border border-google-border">
+            <span class="font-mono text-google-blue font-bold">"name": str</span>
+            <p class="text-google-gray mt-1 font-sans">Official menu item title cited in barista answers.</p>
+          </div>
+          <div class="p-3 rounded-xl bg-white border border-google-border">
+            <span class="font-mono text-google-green font-bold">"price": float</span>
+            <p class="text-google-gray mt-1 font-sans">Item cost used for pricing queries and sidebar badge.</p>
+          </div>
+          <div class="p-3 rounded-xl bg-white border border-google-border">
+            <span class="font-mono text-google-yellow font-bold">"tags": list</span>
+            <p class="text-google-gray mt-1 font-sans">Filters like <code class="text-google-dark">"dairy-free"</code>, <code class="text-google-dark">"hot"</code>, <code class="text-google-dark">"strong"</code>.</p>
+          </div>
+          <div class="p-3 rounded-xl bg-white border border-google-border">
+            <span class="font-mono text-google-red font-bold">"allergens": list</span>
+            <p class="text-google-gray mt-1 font-sans">Allergen warnings (<code class="text-google-dark">"dairy"</code>, <code class="text-google-dark">"wheat"</code>) enforced by rules.</p>
+          </div>
+        </div>
+
+        <!-- JSON Preview Box -->
+        <div class="border border-google-border rounded-xl overflow-hidden bg-[#1e1e1e]">
+          <div class="bg-[#2d2d2d] px-4 py-2 border-b border-gray-700 flex justify-between items-center text-xs">
+            <span class="text-gray-300 font-mono">coffeebaristaagent/menu.json (8 items)</span>
+            <span class="text-google-green font-mono text-[11px]">JSON Formatted</span>
+          </div>
+          <pre class="p-4 text-xs font-mono text-amber-200 overflow-x-auto max-h-56"><code id="menuJsonData">[
+  {
+    "name": "Espresso Solo",
+    "description": "A single shot of rich, bold espresso.",
+    "price": 2.50,
+    "tags": ["strong", "hot", "dairy-free", "sugar-free"],
+    "allergens": []
+  },
+  {
+    "name": "Oat Milk Honey Latte",
+    "description": "Creamy steamed oat milk with espresso and a touch of honey.",
+    "price": 5.00,
+    "tags": ["sweet", "hot", "dairy-free"],
+    "allergens": []
+  },
+  {
+    "name": "Cold Brew Coffee",
+    "description": "Smooth, slow-steeped cold brew served over ice.",
+    "price": 4.00,
+    "tags": ["strong", "cold", "dairy-free", "sugar-free"],
+    "allergens": []
+  },
+  {
+    "name": "Seasonal Pumpkin Latte",
+    "description": "Spiced pumpkin sauce, espresso, and steamed milk, topped with whipped cream.",
+    "price": 5.50,
+    "tags": ["sweet", "hot", "seasonal"],
+    "allergens": ["dairy"]
+  },
+  {
+    "name": "Classic Croissant",
+    "description": "Flaky, buttery traditional French pastry.",
+    "price": 3.50,
+    "tags": ["bakery", "savory"],
+    "allergens": ["wheat", "dairy"]
+  },
+  {
+    "name": "Vegan Blueberry Muffin",
+    "description": "Soft, sweet muffin packed with real blueberries, entirely plant-based.",
+    "price": 3.75,
+    "tags": ["bakery", "sweet", "dairy-free", "vegan"],
+    "allergens": ["wheat"]
+  },
+  {
+    "name": "Nitro Cold Brew",
+    "description": "Cold brew infused with nitrogen for a super smooth, creamy head.",
+    "price": 4.50,
+    "tags": ["strong", "cold", "dairy-free", "sugar-free"],
+    "allergens": []
+  },
+  {
+    "name": "Iced Caramel Macchiato",
+    "description": "Chilled milk and vanilla syrup marked with espresso and caramel drizzle.",
+    "price": 5.25,
+    "tags": ["sweet", "cold"],
+    "allergens": ["dairy"]
+  }
+]</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 5: AGENT.PY FUNCTION CALLING LOGIC -->
+    <section id="step-agent" class="searchable-section bg-white rounded-2xl border border-google-border shadow-card overflow-hidden">
+      <div class="p-4 sm:p-5 border-b border-google-border flex flex-wrap items-center justify-between gap-3 bg-white">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-google-blue text-white font-bold text-sm flex items-center justify-center shadow-sm">
+            5
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-google-dark">Agent Logic & Gemini 3.5 Tools (<span class="font-mono text-google-blue">coffeebaristaagent/agent.py</span>)</h3>
+            <p class="text-xs text-google-gray">Annotated line-by-line function calling and multi-turn state loop</p>
+          </div>
+        </div>
+        <button 
+          onclick="copyAgentPy(this)" 
+          class="text-xs font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-google-blue hover:bg-google-blueHover text-white transition shadow-sm">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+          Copy Complete agent.py
+        </button>
+      </div>
+
+      <div class="p-4 sm:p-5 space-y-4">
+        <!-- Interactive Detailed Code Breakdown Table -->
+        <div class="border border-google-border rounded-xl overflow-hidden bg-white">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead class="bg-google-surface text-google-gray border-b border-google-border">
+              <tr>
+                <th class="py-2.5 px-3 w-14 font-semibold">Lines</th>
+                <th class="py-2.5 px-4 font-semibold">Code Statement</th>
+                <th class="py-2.5 px-4 font-semibold hidden lg:table-cell">Function & Behavioral Explanation</th>
+                <th class="py-2.5 px-3 text-right w-20">Copy</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-google-border font-mono">
+              <!-- agent.py 1-4 -->
+              <tr class="code-row transition">
+                <td class="py-2.5 px-3 text-google-gray">01-04</td>
+                <td class="py-2.5 px-4 text-google-blue">
+                  import json<br>
+                  import os<br>
+                  from google import genai<br>
+                  from google.genai import types
+                </td>
+                <td class="py-2.5 px-4 font-sans text-google-gray hidden lg:table-cell">
+                  Imports OS utilities and the modern <strong class="text-google-dark">Google GenAI SDK</strong>. The <code class="text-google-blue">types</code> module contains request objects (<code class="text-google-dark">GenerateContentConfig</code>) for injecting system instructions, temperatures, and function tools.
+                </td>
+                <td class="py-2.5 px-3 text-right">
+                  <button onclick="copyText('import json\nimport os\nfrom google import genai\nfrom google.genai import types', this)" class="px-2 py-0.5 rounded bg-google-surface hover:bg-google-blue hover:text-white border border-google-border text-[11px] font-sans transition">Copy</button>
+                </td>
+              </tr>
+
+              <!-- agent.py 6-13 -->
+              <tr class="code-row transition">
+                <td class="py-2.5 px-3 text-google-gray">06-13</td>
+                <td class="py-2.5 px-4 text-google-dark">
+                  def get_menu() -&gt; str:<br>
+                  &nbsp;&nbsp;try:<br>
+                  &nbsp;&nbsp;&nbsp;&nbsp;with open("coffeebaristaagent/menu.json", "r") as f:<br>
+                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;menu_data = json.load(f)<br>
+                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return json.dumps(menu_data)<br>
+                  &nbsp;&nbsp;except Exception as e:<br>
+                  &nbsp;&nbsp;&nbsp;&nbsp;return json.dumps({"error": f"..."})
+                </td>
+                <td class="py-2.5 px-4 font-sans text-google-gray hidden lg:table-cell">
+                  <strong class="text-google-dark">The Tool Function (Function Calling):</strong> Passed directly to Gemini's <code class="text-google-dark font-mono">tools=[get_menu]</code> configuration. The model automatically inspects its name and return type, then calls this whenever it needs up-to-date prices, tags, or allergen warnings.
+                </td>
+                <td class="py-2.5 px-3 text-right">
+                  <button onclick="copyText('def get_menu() -> str:\n    try:\n        with open(\x22coffeebaristaagent/menu.json\x22, \x22r\x22) as f:\n            menu_data = json.load(f)\n            return json.dumps(menu_data)\n    except Exception as e:\n        return json.dumps({\x22error\x22: f\x22Could not retrieve menu: {str(e)}\x22})', this)" class="px-2 py-0.5 rounded bg-google-surface hover:bg-google-blue hover:text-white border border-google-border text-[11px] font-sans transition">Copy</button>
+                </td>
+              </tr>
+
+              <!-- agent.py 15-17 -->
+              <tr class="code-row transition">
+                <td class="py-2.5 px-3 text-google-gray">15-17</td>
+                <td class="py-2.5 px-4 text-google-green">
+                  API_KEY = os.environ.get("GEMINI_API_KEY")<br>
+                  client = genai.Client(api_key=API_KEY)
+                </td>
+                <td class="py-2.5 px-4 font-sans text-google-gray hidden lg:table-cell">
+                  Retrieves the API key loaded from <code class="text-google-dark font-mono">.env</code> by <code class="text-google-dark font-mono">load_dotenv()</code> and instantiates the client connection.
+                </td>
+                <td class="py-2.5 px-3 text-right">
+                  <button onclick="copyText('API_KEY = os.environ.get(\x22GEMINI_API_KEY\x22)\nclient = genai.Client(api_key=API_KEY)', this)" class="px-2 py-0.5 rounded bg-google-surface hover:bg-google-green hover:text-white border border-google-border text-[11px] font-sans transition">Copy</button>
+                </td>
+              </tr>
+
+              <!-- agent.py 19-30 -->
+              <tr class="code-row transition">
+                <td class="py-2.5 px-3 text-google-gray">19-30</td>
+                <td class="py-2.5 px-4 text-amber-700">
+                  def run_barista_agent(user_message, history=None):<br>
+                  &nbsp;&nbsp;system_instruction = """You are a barista...<br>
+                  &nbsp;&nbsp;1. Recommend items ONLY from get_menu().<br>
+                  &nbsp;&nbsp;2. Do NOT recommend items not in menu.<br>
+                  &nbsp;&nbsp;3. Ask ONE clarifying question if vague.<br>
+                  &nbsp;&nbsp;5. Ground recommendations in tags/allergens."""
+                </td>
+                <td class="py-2.5 px-4 font-sans text-google-gray hidden lg:table-cell">
+                  <strong class="text-google-dark">System Persona & Guardrails:</strong> Explicitly forbids model hallucination. Restricts the barista to the items in the menu tool and enforces allergen adherence (e.g. strict dairy-free queries).
+                </td>
+                <td class="py-2.5 px-3 text-right">
+                  <button onclick="copyText('system_instruction = \x22\x22\x22You are a friendly barista at ☕Coffee Shop. Your job is to recommend drinks and pastries to customers based on their preferences.\n\nRules you MUST follow:\n1.You must recommend items ONLY from the menu returned by get_menu().\n2.Do NOT recommend or suggest any item that is not present in the menu.\n3.If a User\'s preference is Vague or unclear, ask exactly ONE friendly clarifying question to narrow down what they want (e.g., cold or hot, sweet or strong, coffee or pastry).\n4.Be warm and welcoming, but remain professional.\n5.Ground your recommendations in the actual tags, descriptions, and allergens listed in the menu (e.g., if a user is dairy-free, recommend ONLY items tagged \'dairy-free\' or with no dairy allergens).\x22\x22\x22', this)" class="px-2 py-0.5 rounded bg-google-surface hover:bg-amber-600 hover:text-white border border-google-border text-[11px] font-sans transition">Copy</button>
+                </td>
+              </tr>
+
+              <!-- agent.py 32-41 -->
+              <tr class="code-row transition">
+                <td class="py-2.5 px-3 text-google-gray">32-41</td>
+                <td class="py-2.5 px-4 text-google-red">
+                  &nbsp;&nbsp;chat = client.chats.create(<br>
+                  &nbsp;&nbsp;&nbsp;&nbsp;model="gemini-3.5-flash",<br>
+                  &nbsp;&nbsp;&nbsp;&nbsp;config=types.GenerateContentConfig(<br>
+                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;system_instruction=system_instruction,<br>
+                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tools=[get_menu],<br>
+                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;temperature=0.4<br>
+                  &nbsp;&nbsp;&nbsp;&nbsp;),<br>
+                  &nbsp;&nbsp;&nbsp;&nbsp;history=history<br>
+                  &nbsp;&nbsp;)
+                </td>
+                <td class="py-2.5 px-4 font-sans text-google-gray hidden lg:table-cell">
+                  Creates an automatic conversational session. Injects <code class="text-google-dark font-mono">tools=[get_menu]</code> so function execution is handled seamlessly. <code class="text-google-dark font-mono">temperature=0.4</code> strikes an ideal balance between friendly hospitality and factual menu grounding.
+                </td>
+                <td class="py-2.5 px-3 text-right">
+                  <button onclick="copyText('chat = client.chats.create(\n    model=\x22gemini-3.5-flash\x22, \n    config=types.GenerateContentConfig(\n        system_instruction=system_instruction,\n        tools=[get_menu],\n        temperature=0.4\n    ),\n    history=history\n)', this)" class="px-2 py-0.5 rounded bg-google-surface hover:bg-google-red hover:text-white border border-google-border text-[11px] font-sans transition">Copy</button>
+                </td>
+              </tr>
+
+              <!-- agent.py 43-45 -->
+              <tr class="code-row transition">
+                <td class="py-2.5 px-3 text-google-gray">43-45</td>
+                <td class="py-2.5 px-4 text-google-green">
+                  &nbsp;&nbsp;response = chat.send_message(user_message)<br>
+                  &nbsp;&nbsp;return response.text, chat.get_history()
+                </td>
+                <td class="py-2.5 px-4 font-sans text-google-gray hidden lg:table-cell">
+                  Sends customer prompt, internally invokes tool callbacks if required, and returns both the answer text and updated chat memory log to Streamlit.
+                </td>
+                <td class="py-2.5 px-3 text-right">
+                  <button onclick="copyText('response = chat.send_message(user_message)\nreturn response.text, chat.get_history()', this)" class="px-2 py-0.5 rounded bg-google-surface hover:bg-google-green hover:text-white border border-google-border text-[11px] font-sans transition">Copy</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 6: APP.PY STREAMLIT FRONTEND -->
+    <section id="step-app" class="searchable-section bg-white rounded-2xl border border-google-border shadow-card overflow-hidden">
+      <div class="p-4 sm:p-5 border-b border-google-border flex flex-wrap items-center justify-between gap-3 bg-white">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-google-yellow text-white font-bold text-sm flex items-center justify-center shadow-sm">
+            6
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-google-dark">Streamlit Web Application (<span class="font-mono text-amber-700">app.py</span>)</h3>
+            <p class="text-xs text-google-gray">Sidebar catalog rendering, custom sticky header, and persistent chat state</p>
+          </div>
+        </div>
+        <button 
+          onclick="copyAppPy(this)" 
+          class="text-xs font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-google-yellow hover:bg-[#e09a00] text-white transition shadow-sm">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+          Copy Complete app.py
+        </button>
+      </div>
+
+      <div class="p-4 sm:p-5 space-y-4">
+        <div class="border border-google-border rounded-xl overflow-hidden bg-white">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead class="bg-google-surface text-google-gray border-b border-google-border">
+              <tr>
+                <th class="py-2.5 px-3 w-14 font-semibold">Lines</th>
+                <th class="py-2.5 px-4 font-semibold">Streamlit Block</th>
+                <th class="py-2.5 px-4 font-semibold hidden lg:table-cell">Function & Detailed Purpose</th>
+                <th class="py-2.5 px-3 text-right w-20">Copy</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-google-border font-mono">
+              <!-- app.py 1-7 -->
+              <tr class="code-row transition">
+                <td class="py-2.5 px-3 text-google-gray">01-07</td>
+                <td class="py-2.5 px-4 text-google-blue">
+                  import streamlit as st<br>
+                  import json, os<br>
+                  from dotenv import load_dotenv<br>
+                  load_dotenv()
+                </td>
+                <td class="py-2.5 px-4 font-sans text-google-gray hidden lg:table-cell">
+                  Imports UI components. <code class="text-google-dark font-mono">load_dotenv()</code> must run immediately at root execution to make <code class="text-google-dark font-mono">GEMINI_API_KEY</code> available in memory.
+                </td>
+                <td class="py-2.5 px-3 text-right">
+                  <button onclick="copyText('import streamlit as st\nimport json\nimport os\nfrom dotenv import load_dotenv\n\n# Load .env configurations before importing anything else\nload_dotenv()', this)" class="px-2 py-0.5 rounded bg-google-surface hover:bg-google-blue hover:text-white border border-google-border text-[11px] font-sans transition">Copy</button>
+                </td>
+              </tr>
+
+              <!-- app.py 9-15 -->
+              <tr class="code-row transition">
+                <td class="py-2.5 px-3 text-google-gray">09-15</td>
+                <td class="py-2.5 px-4 text-google-dark">
+                  st.set_page_config(<br>
+                  &nbsp;&nbsp;page_title="☕ Coffee Shop - Barista Bot",<br>
+                  &nbsp;&nbsp;page_icon="☕",<br>
+                  &nbsp;&nbsp;layout="wide",<br>
+                  &nbsp;&nbsp;initial_sidebar_state="expanded"<br>
+                  )
+                </td>
+                <td class="py-2.5 px-4 font-sans text-google-gray hidden lg:table-cell">
+                  Sets browser tab metadata, wide viewport presentation, and keeps the sidebar menu open by default. Must be the first Streamlit command invoked.
+                </td>
+                <td class="py-2.5 px-3 text-right">
+                  <button onclick="copyText('st.set_page_config(\n    page_title=\x22☕ Coffee Shop - Barista Bot\x22,\n    page_icon=\x22☕\x22,\n    layout=\x22wide\x22,\n    initial_sidebar_state=\x22expanded\x22\n)', this)" class="px-2 py-0.5 rounded bg-google-surface hover:bg-google-blue hover:text-white border border-google-border text-[11px] font-sans transition">Copy</button>
+                </td>
+              </tr>
+
+              <!-- app.py 17-37 -->
+              <tr class="code-row transition">
+                <td class="py-2.5 px-3 text-google-gray">17-37</td>
+                <td class="py-2.5 px-4 text-amber-700">
+                  st.markdown("""&lt;style&gt;...&lt;/style&gt;""", ...)<br>
+                  st.markdown("""&lt;div class="header-container"&gt;☕ Coffee Shop&lt;/div&gt;""", ...)
+                </td>
+                <td class="py-2.5 px-4 font-sans text-google-gray hidden lg:table-cell">
+                  Injects CSS making the top banner sticky during scroll events and renders the warm coffee shop header card with responsive box shadow.
+                </td>
+                <td class="py-2.5 px-3 text-right">
+                  <button onclick="copyText('st.markdown(\x22\x22\x22\n<div class=\x22header-container\x22 style=\x22text-align: center; padding: 20px; background: linear-gradient(135deg, #8B5E3C, #6F4E37); color: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);\x22>\n    <h1 style=\x22margin: 0; font-size: 2.5rem; font-weight: 700; color: white;\x22>☕ ☕ Coffee Shop</h1>\n    <p style=\x22margin: 5px 0 0 0; font-size: 1.1rem; opacity: 0.9; color: white;\x22>Your friendly AI Barista is ready to help you find the perfect drink or pastry!</p>\n</div>\n\x22\x22\x22, unsafe_allow_html=True)', this)" class="px-2 py-0.5 rounded bg-google-surface hover:bg-amber-600 hover:text-white border border-google-border text-[11px] font-sans transition">Copy</button>
+                </td>
+              </tr>
+
+              <!-- app.py 39-65 -->
+              <tr class="code-row transition">
+                <td class="py-2.5 px-3 text-google-gray">39-65</td>
+                <td class="py-2.5 px-4 text-google-green">
+                  with st.sidebar:<br>
+                  &nbsp;&nbsp;st.markdown("## ☕ Coffee Shop Menu")<br>
+                  &nbsp;&nbsp;for item in menu_items:<br>
+                  &nbsp;&nbsp;&nbsp;&nbsp;with st.container(border=True):<br>
+                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;st.markdown(f"**{item['name']}** • **${item['price']:.2f}**")
+                </td>
+                <td class="py-2.5 px-4 font-sans text-google-gray hidden lg:table-cell">
+                  Loops over <code class="text-google-dark font-mono">menu.json</code> and renders clickable cards displaying price, description, tag chips, and allergen alerts in the sidebar.
+                </td>
+                <td class="py-2.5 px-3 text-right">
+                  <button onclick="copyText('with st.sidebar:\n    st.markdown(\x22## ☕ Coffee Shop Menu\x22)\n    st.markdown(\x22Explore our offerings and ask the barista for recommendations.\x22)\n    st.markdown(\x22---\x22)\n\n    for item in menu_items:\n        with st.container(border=True):\n            st.markdown(f\x22**{item[\'name\']}**  •  **${item[\'price\']:.2f}**\x22)\n            st.caption(item[\'description\'])\n            tags = \x22 \x22.join([f\x22`{t}`\x22 for t in item.get(\x22tags\x22, [])])\n            if tags:\n                st.markdown(tags)\n            allergens = \x22, \x22.join(item.get(\x22allergens\x22, []))\n            if allergens:\n                st.markdown(f\x22⚠️ *Allergens: {allergens}*\x22)', this)" class="px-2 py-0.5 rounded bg-google-surface hover:bg-google-green hover:text-white border border-google-border text-[11px] font-sans transition">Copy</button>
+                </td>
+              </tr>
+
+              <!-- app.py 67-79 -->
+              <tr class="code-row transition">
+                <td class="py-2.5 px-3 text-google-gray">67-79</td>
+                <td class="py-2.5 px-4 text-google-red">
+                  if "raw_history" not in st.session_state:<br>
+                  &nbsp;&nbsp;st.session_state.raw_history = []<br>
+                  if "messages" not in st.session_state:<br>
+                  &nbsp;&nbsp;st.session_state.messages = [{...}]
+                </td>
+                <td class="py-2.5 px-4 font-sans text-google-gray hidden lg:table-cell">
+                  <strong class="text-google-dark">Session State Persistence:</strong> Streamlit reruns scripts from top to bottom on each keystroke or button click. Session state guards against losing chat messages and preserves Gemini's conversational context across turns.
+                </td>
+                <td class="py-2.5 px-3 text-right">
+                  <button onclick="copyText('if \x22raw_history\x22 not in st.session_state:\n    st.session_state.raw_history = []\n\nif \x22messages\x22 not in st.session_state:\n    st.session_state.messages = [\n        {\x22role\x22: \x22assistant\x22, \x22content\x22: \x22Welcome to ☕ Coffee Shop! What can I get started for you today?\x22}\n    ]', this)" class="px-2 py-0.5 rounded bg-google-surface hover:bg-google-red hover:text-white border border-google-border text-[11px] font-sans transition">Copy</button>
+                </td>
+              </tr>
+
+              <!-- app.py 81-105 -->
+              <tr class="code-row transition">
+                <td class="py-2.5 px-3 text-google-gray">81-105</td>
+                <td class="py-2.5 px-4 text-google-blue">
+                  if prompt := st.chat_input("..."):<br>
+                  &nbsp;&nbsp;with st.spinner("Brewing your answer..."):<br>
+                  &nbsp;&nbsp;&nbsp;&nbsp;response_text, updated_history = run_barista_agent(<br>
+                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;prompt, history=st.session_state.raw_history<br>
+                  &nbsp;&nbsp;&nbsp;&nbsp;)<br>
+                  &nbsp;&nbsp;&nbsp;&nbsp;st.session_state.raw_history = updated_history
+                </td>
+                <td class="py-2.5 px-4 font-sans text-google-gray hidden lg:table-cell">
+                  Grabs user input from chat bottom bar, triggers the agent inside a sleek loading spinner, updates conversational memory array, and writes out the formatted recommendation.
+                </td>
+                <td class="py-2.5 px-3 text-right">
+                  <button onclick="copyText('if prompt := st.chat_input(\x22Ask for recommendations (e.g., \'What dairy-free pastries do you have?\')\x22):\n    with st.chat_message(\x22user\x22):\n        st.markdown(prompt)\n    st.session_state.messages.append({\x22role\x22: \x22user\x22, \x22content\x22: prompt})\n\n    with st.chat_message(\x22assistant\x22):\n        with st.spinner(\x22Brewing your answer...\x22):\n            try:\n                from coffeebaristaagent.agent import run_barista_agent\n                response_text, updated_history = run_barista_agent(\n                    prompt, \n                    history=st.session_state.raw_history\n                )\n                st.session_state.raw_history = updated_history\n                st.markdown(response_text)\n                st.session_state.messages.append({\x22role\x22: \x22assistant\x22, \x22content\x22: response_text})\n            except Exception as e:\n                st.error(f\x22Apologies, I ran into an error: {e}\x22)', this)" class="px-2 py-0.5 rounded bg-google-surface hover:bg-google-blue hover:text-white border border-google-border text-[11px] font-sans transition">Copy</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 7: LAUNCH SERVER & WEB PREVIEW -->
+    <section id="step-run" class="searchable-section bg-white rounded-2xl border border-google-border shadow-card overflow-hidden">
+      <div class="p-4 sm:p-5 border-b border-google-border flex flex-wrap items-center justify-between gap-3 bg-white">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-google-green text-white font-bold text-sm flex items-center justify-center shadow-sm">
+            7
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-google-dark">Launch Streamlit & Cloud Shell Web Preview</h3>
+            <p class="text-xs text-google-gray">Run the web server from the project's root folder.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 sm:p-5 space-y-4">
+        <!-- Terminal Box -->
+        <div class="p-4 rounded-xl bg-google-surface border border-google-border flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div class="space-y-1">
+            <span class="text-xs font-semibold text-google-green uppercase tracking-wider">Terminal Execution Command</span>
+            <div class="font-mono text-xs sm:text-sm text-google-dark font-semibold select-all">
+              python3 -m streamlit run app.py --server.port 8000 --server.enableCORS=false --server.enableXsrfProtection=false
+            </div>
+          </div>
+          <button 
+            onclick="copyText('python3 -m streamlit run app.py --server.port 8000 --server.enableCORS=false --server.enableXsrfProtection=false', this)" 
+            class="px-4 py-2 rounded-full bg-google-green hover:bg-green-700 text-white font-medium text-xs transition shadow-sm whitespace-nowrap">
+            Copy Run Command
+          </button>
+        </div>
+
+        <!-- 3 Flag explanations with Google colors -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+          <div class="p-3.5 rounded-xl bg-google-blueLight border border-blue-200">
+            <span class="font-mono text-google-blue font-bold">--server.port 8000</span>
+            <p class="text-google-gray mt-1 font-sans">Binds server to port 8000 (the standard default port recognized by Google Cloud Shell's web preview).</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-google-yellowLight border border-amber-200">
+            <span class="font-mono text-amber-700 font-bold">--server.enableCORS=false</span>
+            <p class="text-google-gray mt-1 font-sans">Disables Cross-Origin Resource Sharing locks so the Cloud Shell proxy iFrame loads cleanly without cross-domain blocks.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-google-greenLight border border-green-200">
+            <span class="font-mono text-google-green font-bold">--server.enableXsrf=false</span>
+            <p class="text-google-gray mt-1 font-sans">Suppresses Cross-Site Request Forgery cookie collisions when communicating through Google's dev proxy.</p>
+          </div>
+        </div>
+
+        <!-- How to open in cloud shell -->
+        <div class="p-4 rounded-xl bg-white border border-google-border flex items-start gap-3 text-xs">
+          <div class="w-7 h-7 rounded-full bg-google-blueLight text-google-blue flex items-center justify-center font-bold text-sm shrink-0">
+            ℹ️
+          </div>
+          <div class="text-google-gray font-sans space-y-1">
+            <strong class="text-google-dark">Opening the Web Preview in Google Cloud Shell:</strong>
+            <p>1. In the top right corner of the Google Cloud Shell window, click the <strong>Web Preview</strong> icon (looks like a monitor with an eye).</p>
+            <p>2. Select <strong>Change Port</strong> &rarr; enter <strong>8000</strong> &rarr; click <strong>Change and Preview</strong>.</p>
+            <p>3. Your AI Barista Chat UI will open in a new browser tab ready to take customer orders!</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Toast feedback popup -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-2.5 bg-google-dark text-white px-4 py-2.5 rounded-full shadow-hover text-xs font-medium">
+    <svg class="w-4 h-4 text-google-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+    <span id="toastMsg">Copied to clipboard!</span>
+  </div>
+
+  <footer class="border-t border-google-border bg-white py-4 mt-8">
+    <div class="max-w-7xl mx-auto px-4 text-center text-xs text-google-gray flex flex-wrap items-center justify-center gap-2">
+      <span>Built for Gemini Workshops</span>
+      <span>•</span>
+      <span class="flex items-center gap-1 font-medium text-google-dark">
+        <span class="text-google-blue">G</span><span class="text-google-red">o</span><span class="text-google-yellow">o</span><span class="text-google-blue">g</span><span class="text-google-green">l</span><span class="text-google-red">e</span> Theme Companion
+      </span>
+    </div>
+  </footer>
+
+  <script>
+    // Copy to clipboard helper
+    function copyText(text, btnElement) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'absolute';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+
+      try {
+        document.execCommand('copy');
+        showToast("Copied to clipboard!");
+
+        if (btnElement) {
+          const originalText = btnElement.innerHTML;
+          btnElement.innerHTML = `✓ Copied`;
+          btnElement.classList.add('bg-google-green', 'text-white');
+          setTimeout(() => {
+            btnElement.innerHTML = originalText;
+            btnElement.classList.remove('bg-google-green', 'text-white');
+          }, 1800);
+        }
+      } catch (err) {
+        showToast("Error copying to clipboard");
+      } finally {
+        document.body.removeChild(textarea);
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      toastMsg.innerText = msg;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 2000);
+    }
+
+    function copyMenuJson(btn) {
+      const raw = document.getElementById('menuJsonData').innerText;
+      copyText(raw, btn);
+    }
+
+    function copyAgentPy(btn) {
+      const code = `# coffeebaristaagent/agent.py
+import json
+import os
+from google import genai
+from google.genai import types
+
+# 1. Your original tool function
+def get_menu() -> str:
+    try:
+        with open("coffeebaristaagent/menu.json", "r") as f:
+            menu_data = json.load(f)    
+            return json.dumps(menu_data)
+    except Exception as e:
+        return json.dumps({"error": f"Could not retrieve menu: {str(e)}"})    
+
+# 2. Initialize the client using your .env key
+API_KEY = os.environ.get("GEMINI_API_KEY")
+client = genai.Client(api_key=API_KEY)
+
+# 3. Execution function that maintains conversational history loops
+def run_barista_agent(user_message: str, history=None):
+    system_instruction = """You are a friendly barista at ☕Coffee Shop. Your job is to recommend drinks and pastries to customers based on their preferences.
+   
+    Rules you MUST follow:
+    1.You must recommend items ONLY from the menu returned by get_menu().
+    2.Do NOT recommend or suggest any item that is not present in the menu.
+    3.If a User's preference is Vague or unclear, ask exactly ONE friendly clarifying question to narrow down what they want (e.g., cold or hot, sweet or strong, coffee or pastry).
+    4.Be warm and welcoming, but remain professional.
+    5.Ground your recommendations in the actual tags, descriptions, and allergens listed in the menu (e.g., if a user is dairy-free, recommend ONLY items tagged 'dairy-free' or with no dairy allergens).
+    """
+
+    # Start a local chat wrapper that injects instructions and tools
+    chat = client.chats.create(
+        model="gemini-3.5-flash", 
+        config=types.GenerateContentConfig(
+            system_instruction=system_instruction,
+            tools=[get_menu],
+            temperature=0.4
+        ),
+        history=history
+    )
+    
+    # Process message and return text along with updated history logs
+    response = chat.send_message(user_message)
+    return response.text, chat.get_history()`;
+      copyText(code, btn);
+    }
+
+    function copyAppPy(btn) {
+      const code = `# app.py
+import streamlit as st
+import json
+import os
+from dotenv import load_dotenv
+
+# Load .env configurations before importing anything else
+load_dotenv()
+
+# Set page config for a premium look
+st.set_page_config(
+    page_title="☕ Coffee Shop - Barista Bot",
+    page_icon="☕",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Custom CSS to make the header sticky (adapts to light/dark themes)
+st.markdown("""
+<style>
+    div[data-testid="element-container"]:has(.header-container),
+    div.element-container:has(.header-container) {
+        position: sticky;
+        top: 2.875rem;
+        z-index: 999;
+        background-color: transparent;
+        padding-bottom: 10px;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# App Header 
+st.markdown("""
+<div class="header-container" style="text-align: center; padding: 20px; background: linear-gradient(135deg, #8B5E3C, #6F4E37); color: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+    <h1 style="margin: 0; font-size: 2.5rem; font-weight: 700; color: white;">☕ ☕ Coffee Shop</h1>
+    <p style="margin: 5px 0 0 0; font-size: 1.1rem; opacity: 0.9; color: white;">Your friendly AI Barista is ready to help you find the perfect drink or pastry!</p>
+</div>
+""", unsafe_allow_html=True)
+
+# Load Menu for the sidebar
+try:
+    with open("coffeebaristaagent/menu.json", "r") as f:
+        menu_items = json.load(f)
+except Exception as e:
+    st.error(f"Error loading menu: {e}")
+    menu_items = []
+
+# Sidebar Menu & Configuration
+with st.sidebar:
+    st.markdown("## ☕ Coffee Shop Menu")
+    st.markdown("Explore our offerings and ask the barista for recommendations.")
+    st.markdown("---")
+
+    for item in menu_items:
+        with st.container(border=True):
+            st.markdown(f"**{item['name']}**  •  **\${item['price']:.2f}**")
+            st.caption(item['description'])
+
+            # Tags & Allergens as native badges
+            tags = " ".join([f"\`{t}\`" for t in item.get("tags", [])])
+            if tags:
+                st.markdown(tags)
+
+            allergens = ", ".join(item.get("allergens", []))
+            if allergens:
+                st.markdown(f"⚠️ *Allergens: {allergens}*")
+
+# --- Chat Interface Stateful Memory Setup ---
+if "raw_history" not in st.session_state:
+    st.session_state.raw_history = []
+
+if "messages" not in st.session_state:
+    st.session_state.messages = [
+        {"role": "assistant", "content": "Welcome to ☕ Coffee Shop! What can I get started for you today?"}
+    ]
+
+# Display existing message threads
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+
+# User Input Loop Execution
+if prompt := st.chat_input("Ask for recommendations (e.g., 'What dairy-free pastries do you have?')"):
+    # Display user message
+    with st.chat_message("user"):
+        st.markdown(prompt)
+    st.session_state.messages.append({"role": "user", "content": prompt})
+
+    # Generate streaming response natively
+    with st.chat_message("assistant"):
+        with st.spinner("Brewing your answer..."):
+            try:
+                from coffeebaristaagent.agent import run_barista_agent
+
+                # Fire local function loop with current tracking memory history strings
+                response_text, updated_history = run_barista_agent(
+                    prompt, 
+                    history=st.session_state.raw_history
+                )
+                
+                # Keep historical state variables aligned for context tracking
+                st.session_state.raw_history = updated_history
+
+                st.markdown(response_text)
+                st.session_state.messages.append({"role": "assistant", "content": response_text})
+            except Exception as e:
+                st.error(f"Apologies, I ran into an error: {e}")`;
+      copyText(code, btn);
+    }
+
+    function filterSections() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const sections = document.querySelectorAll('.searchable-section');
+
+      sections.forEach(s => {
+        const text = s.innerText.toLowerCase();
+        s.style.display = text.includes(q) ? "" : "none";
+      });
+    }
+
+    let isCollapsed = false;
+    function toggleDetails() {
+      const rows = document.querySelectorAll('.searchable-section tbody, .searchable-section .p-4, .searchable-section .p-5');
+      isCollapsed = !isCollapsed;
+      rows.forEach(r => {
+        if (r.tagName === 'TBODY' || r.classList.contains('p-4') || r.classList.contains('p-5')) {
+          r.style.display = isCollapsed ? 'none' : '';
+        }
+      });
+    }
+  </script>
+</body>
+</html>
