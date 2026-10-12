@@ -1,7 +1,7 @@
 cat << 'EOF' > README.md
 # ☕ Coffee Barista Assistant — Hybrid RAG with Google Gemini
 
-> An intelligent, conversational coffee barista powered by **Google Gemini**, built and demonstrated during the **"Real-World AI with RAG & Gemini"** hands-on developer workshop.
+> An intelligent, conversational coffee barista powered by **Google Gemini**, built and demonstrated during the **"BUILD WITH GOOGLE:RAG & Gemini"** hands-on developer workshop.
 
 ---
 
