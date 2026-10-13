@@ -1,39 +1,45 @@
-
+cat << 'EOF' > README.md
 # ☕ Coffee Barista Assistant — Hybrid RAG with Google Gemini
 
-> An intelligent, conversational coffee barista powered by **Google Gemini**, built and demonstrated during the **"BUILD WITH GOOGLE:RAG & Gemini"** hands-on developer workshop.
+> An intelligent conversational assistant powered by **Google Gemini**, built and demonstrated during the **"BUILD WITH GOOGLE: RAG & Gemini"** hands-on developer workshop.
 
 ---
 
-## 📌 Project Overview
-In retail and hospitality, static menus and keyword matching cannot handle natural, complex customer requests like:
-> *"I have $5, want something cold with a cinnamon kick, but I am lactose intolerant."*
+## 📌 Problem & Overview
 
-This project bridges that gap by combining **Google Gemini's reasoning and function-calling capabilities** with a **Hybrid Retrieval-Augmented Generation (RAG)** architecture:
-- **Semantic Layer (ChromaDB):** Retrieves items matching sensory descriptions, flavor profiles, and subjective preferences.
-- **Relational Layer (SQLite):** Strictly enforces hard business constraints (budget caps, allergen exclusions, inventory status).
+When customers order, their requests are often subjective and constraint-heavy at the same time:
+> *"I have $5, want something cold with a cinnamon kick to wake me up, but I am lactose intolerant."*
+
+Traditional systems fail on this dual requirement:
+- **Keyword / Relational Search** cannot parse subjective sensory notes like *"refreshing with a kick"*.
+- **Pure Vector Search (Standard RAG)** understands the vibe, but ignores hard mathematical ceilings or allergen exclusions because similarity scores don't enforce strict boolean safety.
+
+This project implements a **Hybrid Retrieval-Augmented Generation (RAG)** pipeline:
+1. **Semantic Search (ChromaDB + Gemini Embeddings):** Retrieves items matching sensory descriptions, mood, and flavor profiles.
+2. **Relational Search (SQLite):** Strictly enforces hard constraints (max budget, stock availability, allergen safety).
+3. **Agent Orchestration (Google Gemini):** Extracts entities from natural language, calls the hybrid search tool dynamically, and responds conversationally without hallucinations.
 
 ---
 
 ## 🏗️ Architecture
 
 ```text
-User Query (Natural Language)
+User Request (Natural Language)
             │
             ▼
 ┌─────────────────────────┐
-│      Google Gemini      │ ──► Identifies constraints (max price, allergens, flavor notes)
+│      Google Gemini      │ ──► Extracts price cap, allergens, and flavor notes
 └───────────┬─────────────┘
             │ Tool Call: hybrid_menu_search(...)
             ▼
 ┌─────────────────────────┐
 │   Hybrid Search Engine  │
 ├─────────────────────────┤
-│ 1. Vector Search (Chroma)──► Top semantic matches by flavor/category
-│ 2. SQL Filter (SQLite)   ──► Hard filter (Price <= X, In-Stock, Allergen check)
+│ 1. ChromaDB (Vector)    │ ──► Matches flavor / vibe via embeddings
+│ 2. SQLite (Relational)  │ ──► Filters WHERE price <= X AND allergens NOT IN (...)
 └───────────┬─────────────┘
             │ Grounded Menu Results
             ▼
 ┌─────────────────────────┐
-│     Gemini Response     │ ──► Accurate, conversational barista recommendation
+│     Gemini Response     │ ──► Accurate, grounded, conversational recommendation
 └─────────────────────────┘
