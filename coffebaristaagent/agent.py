@@ -1,9 +1,7 @@
 import os
-import time
 from pathlib import Path
 from dotenv import load_dotenv
 from google import genai
-from google.genai.errors import ServerError, APIError
 from .retriever import hybrid_menu_search
 
 CURRENT_DIR = Path(__file__).resolve().parent
@@ -11,11 +9,12 @@ load_dotenv(CURRENT_DIR.parent / ".env")
 
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
+# Models with much larger free tier allowances (avoid gemini-3.8-flash free limit of 20)
 CANDIDATE_MODELS = [
     "gemini-flash-latest",
-    "gemini-3.7-flash",
-    "gemini-3.5-flash",
+    "gemini-2.5-flash",
     "gemini-flash-lite-latest",
+    "gemini-2.5-flash-lite",
 ]
 
 SYSTEM_INSTRUCTION = (
@@ -26,10 +25,6 @@ SYSTEM_INSTRUCTION = (
 )
 
 def get_menu_recommendations(user_query: str, max_price: float = None, exclude_dairy: bool = False) -> str:
-    """
-    Searches the coffee shop menu using hybrid semantic vector search and SQLite filtering.
-    Call this when a customer asks for drink recommendations, ingredients, prices, or menu items.
-    """
     allergens = ["dairy", "milk"] if exclude_dairy else []
     results = hybrid_menu_search(
         query_text=user_query,
@@ -60,4 +55,4 @@ def create_barista_chat():
             )
         except Exception:
             continue
-    raise RuntimeError("All candidate models currently unavailable.")
+    raise RuntimeError("All candidate models currently unavailable or quota exhausted.")
