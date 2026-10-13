@@ -13,6 +13,10 @@ CHROMA_DIR = CURRENT_DIR / "chroma_db"
 load_dotenv(CURRENT_DIR.parent / ".env")
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
+# Keep Chroma persistent client & collection loaded in memory (0ms re-open latency)
+_CHROMA_CLIENT = chromadb.PersistentClient(path=str(CHROMA_DIR))
+_COLLECTION = _CHROMA_CLIENT.get_collection("menu_embeddings")
+
 def get_query_embedding(text: str):
     response = client.models.embed_content(
         model="gemini-embedding-001",
@@ -24,27 +28,24 @@ def hybrid_menu_search(
     query_text: str,
     max_price: Optional[float] = None,
     exclude_allergens: Optional[List[str]] = None,
-    limit: int = 4
+    limit: int = 3
 ) -> List[Dict[str, Any]]:
-    # Step 1: Semantic search via Gemini Query Embedding
-    chroma_client = chromadb.PersistentClient(path=str(CHROMA_DIR))
-    collection = chroma_client.get_collection("menu_embeddings")
-
-    count = collection.count()
+    count = _COLLECTION.count()
     if count == 0:
         return []
 
+    # Step 1: Semantic vector query
     q_emb = get_query_embedding(query_text)
-    results = collection.query(
+    results = _COLLECTION.query(
         query_embeddings=[q_emb],
-        n_results=min(limit * 3, count)
+        n_results=min(limit * 2, count)
     )
 
     candidate_ids = results["ids"][0] if results and results["ids"] else []
     if not candidate_ids:
         return []
 
-    # Step 2: Relational constraint filtering via SQLite
+    # Step 2: Fast SQLite filter
     conn = sqlite3.connect(SQLITE_DB)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -66,7 +67,7 @@ def hybrid_menu_search(
     rows = {row["id"]: dict(row) for row in cursor.fetchall()}
     conn.close()
 
-    # Step 3: Allergen filtering while preserving rank
+    # Step 3: Fast allergen exclusion
     final_matches = []
     for cid in candidate_ids:
         if cid in rows:
