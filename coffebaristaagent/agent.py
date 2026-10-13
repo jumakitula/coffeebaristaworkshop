@@ -1,24 +1,19 @@
 import os
+import time
 from pathlib import Path
-from typing import Optional, List
 from dotenv import load_dotenv
 from google import genai
-from google.genai import types
+from google.genai.errors import ServerError, APIError
 from .retriever import hybrid_menu_search
 
 CURRENT_DIR = Path(__file__).resolve().parent
-# Load .env from project root
 load_dotenv(CURRENT_DIR.parent / ".env")
 
-api_key = os.getenv("GEMINI_API_KEY")
-if not api_key:
-    raise ValueError("GEMINI_API_KEY is not set. Please check your .env or Streamlit Secrets.")
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
-client = genai.Client(api_key=api_key)
-
-# Stable, valid Gemini models with free-tier access
 CANDIDATE_MODELS = [
     "gemini-flash-latest",
+    "gemini-3.7-flash",
     "gemini-3.5-flash",
     "gemini-flash-lite-latest",
 ]
@@ -30,17 +25,10 @@ SYSTEM_INSTRUCTION = (
     "Never invent prices or mention drinks/pastries that are not returned by the tool."
 )
 
-def get_menu_recommendations(
-    user_query: str, 
-    max_price: Optional[float] = None, 
-    exclude_dairy: bool = False
-) -> str:
-    """Searches the coffee shop menu using hybrid semantic vector search and SQLite filtering.
-    
-    Args:
-        user_query: Description of what the customer wants (e.g. 'sweet iced drink', 'cinnamon pastry').
-        max_price: Maximum price ceiling in dollars (e.g. 5.0).
-        exclude_dairy: True if the user wants dairy-free or is lactose intolerant.
+def get_menu_recommendations(user_query: str, max_price: float = None, exclude_dairy: bool = False) -> str:
+    """
+    Searches the coffee shop menu using hybrid semantic vector search and SQLite filtering.
+    Call this when a customer asks for drink recommendations, ingredients, prices, or menu items.
     """
     allergens = ["dairy", "milk"] if exclude_dairy else []
     results = hybrid_menu_search(
@@ -61,21 +49,15 @@ def get_menu_recommendations(
     return "\n".join(formatted)
 
 def create_barista_chat():
-    """Initializes a chat session using the first available working model."""
-    last_error = None
     for model_name in CANDIDATE_MODELS:
         try:
-            chat = client.chats.create(
+            return client.chats.create(
                 model=model_name,
-                config=types.GenerateContentConfig(
-                    system_instruction=SYSTEM_INSTRUCTION,
-                    tools=[get_menu_recommendations],
-                    temperature=0.7,
-                ),
+                config={
+                    "system_instruction": SYSTEM_INSTRUCTION,
+                    "tools": [get_menu_recommendations],
+                }
             )
-            return chat
-        except Exception as e:
-            last_error = e
+        except Exception:
             continue
-            
-    raise RuntimeError(f"Could not connect to any candidate model. Last error: {last_error}")
+    raise RuntimeError("All candidate models currently unavailable.")
