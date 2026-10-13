@@ -1,4 +1,4 @@
-import os
+cat << 'EOF' > app.py
 import time
 from pathlib import Path
 import streamlit as st
@@ -41,21 +41,12 @@ with st.sidebar:
     st.markdown("- *'I have a dairy allergy, what pastries can I get?'*")
     st.markdown("- *'Something warm with a cinnamon kick to wake me up'*")
     st.markdown("---")
-    if st.button("🔄 Reset Conversation"):
-        st.session_state.chat = None
-        st.session_state.messages = [
-            {"role": "assistant", "content": "Welcome to ☕ Coffee Shop! What can I get started for you today?"}
-        ]
-        st.rerun()
     st.caption("Grounded strictly in SQLite & ChromaDB vector store.")
 
-# Helper to safely initialize or re-initialize chat
-def get_or_create_chat():
-    if "chat" not in st.session_state or st.session_state.chat is None:
-        st.session_state.chat = create_barista_chat()
-    return st.session_state.chat
+# Initialize chat session
+if "chat" not in st.session_state:
+    st.session_state.chat = create_barista_chat()
 
-# Initialize messages
 if "messages" not in st.session_state:
     st.session_state.messages = [
         {"role": "assistant", "content": "Welcome to ☕ Coffee Shop! What can I get started for you today?"}
@@ -75,30 +66,23 @@ if prompt := st.chat_input("Ask for recommendations (e.g., 'What dairy-free past
     with st.chat_message("assistant"):
         with st.spinner("Brewing your answer..."):
             reply = None
-            try:
-                chat_session = get_or_create_chat()
-                response = chat_session.send_message(prompt)
-                
-                # Extract response text safely
-                if hasattr(response, "text") and response.text:
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    response = st.session_state.chat.send_message(prompt)
                     reply = response.text
-                else:
-                    reply = "I prepared your request, but could not format the output text. Please rephrase."
-
-            except Exception as e:
-                err_str = str(e)
-                
-                # Check for quota or rate limit issues
-                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
-                    reply = "⚠️ The daily free API credits/quota are currently exhausted for this model. Please try again tomorrow or upgrade your billing on Google AI Studio."
-                # Check for temporary service unavailability
-                elif "503" in err_str or "UNAVAILABLE" in err_str:
-                    reply = "⚠️ The model endpoint is experiencing high temporary demand. Please resend your message in a few seconds."
-                else:
-                    # Provide the actual diagnostic error so you can see exact cause
-                    reply = f"⚠️ **System Notice**: `{type(e).__name__}`: {err_str}"
-                    # Reset chat in session state so subsequent turns don't remain corrupted
-                    st.session_state.chat = None
+                    break
+                except Exception as e:
+                    if attempt < max_retries - 1:
+                        time.sleep(1.5)
+                    else:
+                        st.session_state.chat = create_barista_chat()
+                        try:
+                            response = st.session_state.chat.send_message(prompt)
+                            reply = response.text
+                        except Exception as final_e:
+                            reply = f"Apologies, I ran into an error: {final_e}"
 
             st.markdown(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
+EOF
