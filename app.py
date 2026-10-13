@@ -1,9 +1,16 @@
 import time
+from pathlib import Path
 import streamlit as st
-from google.genai.errors import ServerError
+
+# Auto-seed database if missing on cold start
+db_path = Path("coffebaristaagent/barista.db")
+if not db_path.exists():
+    from coffebaristaagent.init_hybrid_db import setup_databases
+    setup_databases()
+
 from coffebaristaagent.agent import create_barista_chat
 
-st.set_page_config(page_title="AI Coffee Barista", page_icon="☕")
+st.set_page_config(page_title="AI Coffee Barista", page_icon="☕", layout="centered")
 
 st.title("☕ AI Barista Assistant")
 st.caption("Powered by Google Gemini & Hybrid RAG (SQLite + ChromaDB)")
@@ -26,25 +33,12 @@ if prompt := st.chat_input("What would you like to order today?"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        with st.spinner("Brewing a response..."):
-            reply = None
-            max_retries = 3
-            for attempt in range(max_retries):
-                try:
-                    response = st.session_state.chat.send_message(prompt)
-                    reply = response.text
-                    break
-                except ServerError as e:
-                    if attempt < max_retries - 1:
-                        time.sleep(1.5)  # Brief pause before retrying transient spike
-                    else:
-                        # Reset chat session to trigger fallback model
-                        st.session_state.chat = create_barista_chat()
-                        response = st.session_state.chat.send_message(prompt)
-                        reply = response.text
-                except Exception as e:
-                    reply = f"Sorry, I encountered an error: {e}"
-                    break
+        def generate_response():
+            # stream_tokens=True prints output as it arrives
+            response_stream = st.session_state.chat.send_message_stream(prompt)
+            for chunk in response_stream:
+                if chunk.text:
+                    yield chunk.text
 
-            st.markdown(reply)
-            st.session_state.messages.append({"role": "assistant", "content": reply})
+        reply = st.write_stream(generate_response)
+        st.session_state.messages.append({"role": "assistant", "content": reply})
