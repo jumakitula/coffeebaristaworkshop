@@ -1,6 +1,7 @@
 import time
 from pathlib import Path
 import streamlit as st
+from google.genai.errors import ServerError, APIError
 
 # Auto-seed database if missing on cold start
 db_path = Path("coffebaristaagent/barista.db")
@@ -33,12 +34,35 @@ if prompt := st.chat_input("What would you like to order today?"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        def generate_response():
-            # stream_tokens=True prints output as it arrives
-            response_stream = st.session_state.chat.send_message_stream(prompt)
-            for chunk in response_stream:
-                if chunk.text:
-                    yield chunk.text
+        with st.spinner("Brewing a response..."):
+            reply = None
+            max_retries = 3
+            
+            for attempt in range(max_retries):
+                try:
+                    response = st.session_state.chat.send_message(prompt)
+                    reply = response.text
+                    break
+                except (ServerError, APIError) as e:
+                    if attempt < max_retries - 1:
+                        time.sleep(2 * (attempt + 1))  # Exponential backoff (2s, 4s)
+                    else:
+                        # Re-instantiate chat session to reset state
+                        try:
+                            st.session_state.chat = create_barista_chat()
+                            response = st.session_state.chat.send_message(prompt)
+                            reply = response.text
+                        except Exception as final_e:
+                            reply = "Sorry, our barista system is experiencing high traffic right now. Please try your request once more in a few seconds!"
+                except Exception as e:
+                    reply = f"Error: {e}"
+                    break
 
-        reply = st.write_stream(generate_response)
-        st.session_state.messages.append({"role": "assistant", "content": reply})
+            # Stream words smoothly to the UI
+            def text_streamer(text):
+                for word in text.split(" "):
+                    yield word + " "
+                    time.sleep(0.02)
+
+            rendered = st.write_stream(text_streamer(reply))
+            st.session_state.messages.append({"role": "assistant", "content": reply})
