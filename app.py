@@ -1,4 +1,3 @@
-cat << 'EOF' > app.py
 import time
 from pathlib import Path
 import streamlit as st
@@ -85,4 +84,4 @@ if prompt := st.chat_input("Ask for recommendations (e.g., 'What dairy-free past
 
             st.markdown(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
-EOF
+
