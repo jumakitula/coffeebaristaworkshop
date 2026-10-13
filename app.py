@@ -44,7 +44,13 @@ with st.sidebar:
 
 # Initialize chat session
 if "chat" not in st.session_state:
-    st.session_state.chat = create_barista_chat()
+    try:
+        st.session_state.chat = create_barista_chat()
+    except Exception as e:
+        if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+            st.error("⚠️ The daily free API credits/quota are currently exhausted. Please try again tomorrow or add billing.")
+        else:
+            st.error(f"Error initializing chat: {e}")
 
 if "messages" not in st.session_state:
     st.session_state.messages = [
@@ -65,22 +71,18 @@ if prompt := st.chat_input("Ask for recommendations (e.g., 'What dairy-free past
     with st.chat_message("assistant"):
         with st.spinner("Brewing your answer..."):
             reply = None
-            max_retries = 3
-            for attempt in range(max_retries):
-                try:
-                    response = st.session_state.chat.send_message(prompt)
-                    reply = response.text
-                    break
-                except Exception as e:
-                    if attempt < max_retries - 1:
-                        time.sleep(1.5)
-                    else:
-                        st.session_state.chat = create_barista_chat()
-                        try:
-                            response = st.session_state.chat.send_message(prompt)
-                            reply = response.text
-                        except Exception as final_e:
-                            reply = f"Apologies, I ran into an error: {final_e}"
+            try:
+                response = st.session_state.chat.send_message(prompt)
+                reply = response.text
+            except Exception as e:
+                err_str = str(e)
+                # Catch Quota / Rate-limit errors cleanly
+                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                    reply = "⚠️ The daily free API credits/quota are currently over for this model. Please try again later or add billing in Google AI Studio."
+                elif "503" in err_str or "UNAVAILABLE" in err_str:
+                    reply = "⚠️ The model is temporarily experiencing high traffic. Please try asking again in a moment."
+                else:
+                    reply = "Apologies, I encountered an unexpected error while preparing your order. Please try again."
 
             st.markdown(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
